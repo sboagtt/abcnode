@@ -83,6 +83,7 @@ module.exports=(function(){
         "tie": parse_tie,
         "gracings": parse_gracings,
         "grace_notes": parse_grace_notes,
+        "slur_notes": parse_slur_notes,
         "broken_rhythm": parse_broken_rhythm,
         "tuplet": parse_tuplet,
         "tuplet_spec": parse_tuplet_spec,
@@ -555,7 +556,7 @@ module.exports=(function(){
                  "H:": "history",
                  "N:": "notes",
                  "O:": "origin",
-                 "R:": "rythm",
+                 "R:": "rhythm",
                  "S:": "source",
                  "Z:": "t_note"
              };
@@ -2645,7 +2646,7 @@ module.exports=(function(){
       }
       
       function parse_measure() {
-        var result0, result1, result2, result3, result4, result5, result6;
+        var result0, result1, result2, result3, result4, result5, result6, result7;
         var pos0, pos1, pos2;
         
         pos0 = pos;
@@ -2679,31 +2680,38 @@ module.exports=(function(){
                   result4 = parse_nth_repeat();
                 }
                 if (result4 !== null) {
-                  pos2 = pos;
-                  if (input.charCodeAt(pos) === 92) {
-                    result5 = "\\";
-                    pos++;
-                  } else {
-                    result5 = null;
-                    if (reportFailures === 0) {
-                      matchFailed("\"\\\\\"");
-                    }
-                  }
-                  if (result5 !== null) {
-                    result6 = parse_nl();
-                    if (result6 !== null) {
-                      result5 = [result5, result6];
-                    } else {
-                      result5 = null;
-                      pos = pos2;
-                    }
-                  } else {
-                    result5 = null;
-                    pos = pos2;
-                  }
+                  result5 = parse_nth_repeat();
                   result5 = result5 !== null ? result5 : "";
                   if (result5 !== null) {
-                    result0 = [result0, result1, result2, result3, result4, result5];
+                    pos2 = pos;
+                    if (input.charCodeAt(pos) === 92) {
+                      result6 = "\\";
+                      pos++;
+                    } else {
+                      result6 = null;
+                      if (reportFailures === 0) {
+                        matchFailed("\"\\\\\"");
+                      }
+                    }
+                    if (result6 !== null) {
+                      result7 = parse_nl();
+                      if (result7 !== null) {
+                        result6 = [result6, result7];
+                      } else {
+                        result6 = null;
+                        pos = pos2;
+                      }
+                    } else {
+                      result6 = null;
+                      pos = pos2;
+                    }
+                    result6 = result6 !== null ? result6 : "";
+                    if (result6 !== null) {
+                      result0 = [result0, result1, result2, result3, result4, result5, result6];
+                    } else {
+                      result0 = null;
+                      pos = pos1;
+                    }
                   } else {
                     result0 = null;
                     pos = pos1;
@@ -2833,7 +2841,7 @@ module.exports=(function(){
       }
       
       function parse_note_stem() {
-        var result0, result1, result2, result3;
+        var result0, result1, result2, result3, result4;
         var pos0, pos1;
         
         pos0 = pos;
@@ -2841,22 +2849,32 @@ module.exports=(function(){
         result0 = parse_guitar_chord();
         result0 = result0 !== null ? result0 : "";
         if (result0 !== null) {
-          result1 = parse_grace_notes();
+          result1 = parse_slur_notes();
           result1 = result1 !== null ? result1 : "";
           if (result1 !== null) {
-            result2 = [];
-            result3 = parse_gracings();
-            while (result3 !== null) {
-              result2.push(result3);
-              result3 = parse_gracings();
-            }
+            result2 = parse_grace_notes();
+            result2 = result2 !== null ? result2 : "";
             if (result2 !== null) {
-              result3 = parse_note();
-              if (result3 === null) {
-                result3 = parse_chord();
+              result3 = [];
+              result4 = parse_gracings();
+              while (result4 !== null) {
+                result3.push(result4);
+                result4 = parse_gracings();
               }
               if (result3 !== null) {
-                result0 = [result0, result1, result2, result3];
+                result4 = parse_note();
+                if (result4 === null) {
+                  result4 = parse_chord();
+                  if (result4 === null) {
+                    result4 = parse_tuplet();
+                  }
+                }
+                if (result4 !== null) {
+                  result0 = [result0, result1, result2, result3, result4];
+                } else {
+                  result0 = null;
+                  pos = pos1;
+                }
               } else {
                 result0 = null;
                 pos = pos1;
@@ -2874,14 +2892,16 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, gc, gn, n) {
+          result0 = (function(offset, gc, sn, gn, n) {
                 if (gc)
                     n.guitar_chord = gc;
                 if (gn)
                     n.grace_notes  = gn;
+                if (sn)
+                    n.slur_notes  = sn;
         
                 return n;
-            })(pos0, result0[0], result0[1], result0[3]);
+            })(pos0, result0[0], result0[1], result0[2], result0[4]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -2949,7 +2969,7 @@ module.exports=(function(){
       }
       
       function parse_note() {
-        var result0, result1, result2;
+        var result0, result1, result2, result3;
         var pos0, pos1;
         
         pos0 = pos;
@@ -2959,10 +2979,17 @@ module.exports=(function(){
           result1 = parse_time_signature();
           result1 = result1 !== null ? result1 : "";
           if (result1 !== null) {
-            result2 = parse_tie();
+            result2 = parse__();
             result2 = result2 !== null ? result2 : "";
             if (result2 !== null) {
-              result0 = [result0, result1, result2];
+              result3 = parse_tie();
+              result3 = result3 !== null ? result3 : "";
+              if (result3 !== null) {
+                result0 = [result0, result1, result2, result3];
+              } else {
+                result0 = null;
+                pos = pos1;
+              }
             } else {
               result0 = null;
               pos = pos1;
@@ -2976,15 +3003,20 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, n, time) {
+          result0 = (function(offset, n, time, tie) {
             if (time) {
                 n.duration = time.duration;
                 n.dots = time.dots
-            } else {
+            }
+            else {
                 n.duration = defaultTime || defaultMeter;
             }
+        
+            if (tie)
+                n.tie = true;
+        
             return n;
-        })(pos0, result0[0], result0[1]);
+        })(pos0, result0[0], result0[1], result0[3]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -3253,6 +3285,65 @@ module.exports=(function(){
         return result0;
       }
       
+      function parse_slur_notes() {
+        var result0, result1, result2;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.charCodeAt(pos) === 40) {
+          result0 = "(";
+          pos++;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"(\"");
+          }
+        }
+        if (result0 !== null) {
+          result2 = parse_pitch();
+          if (result2 !== null) {
+            result1 = [];
+            while (result2 !== null) {
+              result1.push(result2);
+              result2 = parse_pitch();
+            }
+          } else {
+            result1 = null;
+          }
+          if (result1 !== null) {
+            if (input.charCodeAt(pos) === 41) {
+              result2 = ")";
+              pos++;
+            } else {
+              result2 = null;
+              if (reportFailures === 0) {
+                matchFailed("\")\"");
+              }
+            }
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, p) { return p })(pos0, result0[1]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
       function parse_broken_rhythm() {
         var result0, result1;
         
@@ -3442,24 +3533,30 @@ module.exports=(function(){
       }
       
       function parse_bar() {
-        var result0, result1;
+        var result0, result1, result2;
         var pos0, pos1;
         
         pos0 = pos;
         result0 = parse_bars();
         if (result0 !== null) {
-          pos1 = pos;
-          reportFailures++;
-          result1 = parse_stringNum();
-          reportFailures--;
-          if (result1 === null) {
-            result1 = "";
-          } else {
-            result1 = null;
-            pos = pos1;
-          }
+          result1 = parse__();
           if (result1 !== null) {
-            result0 = [result0, result1];
+            pos1 = pos;
+            reportFailures++;
+            result2 = parse_stringNum();
+            reportFailures--;
+            if (result2 === null) {
+              result2 = "";
+            } else {
+              result2 = null;
+              pos = pos1;
+            }
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos0;
+            }
           } else {
             result0 = null;
             pos = pos0;

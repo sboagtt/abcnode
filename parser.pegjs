@@ -85,7 +85,7 @@ other_fields
          "H:": "history",
          "N:": "notes",
          "O:": "origin",
-         "R:": "rythm",
+         "R:": "rhythm",
          "S:": "source",
          "Z:": "t_note"
      };
@@ -225,11 +225,13 @@ measure
 
 note_element = n:note_stem broken_rhythm? _? { return n }
 note_stem
-    = gc:guitar_chord? gn:grace_notes? gracings* n:(note / chord) {
+    = gc:guitar_chord? sn:slur_notes? gn:grace_notes? gracings* n:(note / chord / tuplet) {
         if (gc)
             n.guitar_chord = gc;
         if (gn)
             n.grace_notes  = gn;
+        if (sn)
+            n.slur_notes  = sn;
 
         return n;
     }
@@ -270,6 +272,7 @@ rest         = "z" { return { note: "rest" } }
 tie          = "-"
 gracings     = "~" / "." / "v" / "u"
 grace_notes  = "{" p:pitch+ "}" { return p }
+slur_notes  = "(" p:pitch+ ")" { return p }
 broken_rhythm = "<"+ / ">"+
 
 tuplet = tuplet_spec n:note_element+ {
@@ -282,7 +285,7 @@ tuplet = tuplet_spec n:note_element+ {
 tuplet_spec = "(" integer (":" (integer) ( ":" integer? )? )?
 
 bar
- = bars !(stringNum)
+ = bars _ !(stringNum)
 
 bars
  = "|]" / "||" / "[|" / "|]" / "|:" / "|" / ":|" / "::"
@@ -389,4 +392,3 @@ Zs = [\u0020\u00A0\u1680\u180E\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u
 
 EOF
   = !.
-
