@@ -111,10 +111,11 @@ other_fields
  }
 
 tempo = integer+ / ("C" note_length? "=" integer+) / (note_length_strict "=" integer+)
-meter = "C" / "C|" / meter_fraction
+// Long tokens first! -sb
+meter = "C|" {return "2/2"} / "C" {return "4/4"} / meter_fraction
 meter_fraction     = l:(integer+ "/" integer+) { return l.join("") }
 note_length_strict = l:(integer+ "/" integer+) { return l.join("") }
-note_length = (integer+)? ("/" (integer+))?
+note_length = (integer+)? ("/" (integer*))?
 parts = part_spec+
 part_spec = (part / ( "(" part_spec+ ")" ) ) integer+
 part = "A" / "B" / "C" / "D" / "E" / "F" / "G" / "H" / "I" / "J" / "K" / "L" / "M" / "N" / "O" / "P" / "Q" / "R" / "S" / "T" / "U" / "V" / "X" / "Y" / "Z"
@@ -162,7 +163,7 @@ stave
  = measures:measure+ _ { return measures; }
 
 measure
- = _ bar? notes:(note_element / tuplet)+ _ bar:(bar / nth_repeat) nth_repeat? ("\\" nl)? {
+ = _ (bar / nth_repeat)? notes:(note_element / tuplet)+ ("\\" nl)? _ bar:(bar / nth_repeat)? nth_repeat? ("\\" nl)? {
 
     var finalNotes = [];
     var counter    = 0;
@@ -213,25 +214,29 @@ measure
 
         finalNotes.push(note);
     }
-    var mObj = { bar: bar[0], chords: [] };
 
-    // For each note/chord we create a chord object that contains a notes array
-    // with the proper note/chord, and attach it to the chords that the measure
-    // will contain.
-    finalNotes.forEach(function(n) { mObj.chords.push({ notes: n }); });
+    if(bar) {
+      var mObj = { bar: bar[0], chords: [] };
+
+      // For each note/chord we create a chord object that contains a notes array
+      // with the proper note/chord, and attach it to the chords that the measure
+      // will contain.
+      finalNotes.forEach(function(n) { mObj.chords.push({ notes: n }); });
+    }
 
     return mObj;
 }
 
 note_element = n:note_stem broken_rhythm? _? { return n }
 note_stem
-    = gc:guitar_chord? sn:slur_notes? gn:grace_notes? gracings* n:(note / chord / tuplet) {
+    = gc:guitar_chord? _ sng:(sn:slur_notes / gn:grace_notes / "*")? _ gracings*
+      n:(note / chord / tuplet) {
         if (gc)
             n.guitar_chord = gc;
-        if (gn)
-            n.grace_notes  = gn;
-        if (sn)
-            n.slur_notes  = sn;
+        if (sng.gn)
+            n.grace_notes  = sng.gn;
+        if (sng.sn)
+            n.slur_notes  = sng.sn;
 
         return n;
     }
@@ -254,10 +259,13 @@ note = n:note_or_rest time:time_signature? _? tie:tie? {
 }
 note_or_rest = n:(pitch / rest) { return n }
 
-pitch = acc:accidental? bn:basenote o:octave? {
+pitch = acc:accidental? bn:basenote notelen:note_length? o:octave? {
     var obj = {
         accidental: acc,
         note: bn + o
+    }
+    if(notelen){
+      obj.length = notelen;
     }
 
     if (!acc)
@@ -271,8 +279,8 @@ basenote     = [A-G] / [a-g]
 rest         = "z" { return { note: "rest" } }
 tie          = "-"
 gracings     = "~" / "." / "v" / "u"
-grace_notes  = "{" p:pitch+ "}" { return p }
-slur_notes  = "(" p:pitch+ ")" { return p }
+grace_notes  = "{" p:(_ pitch _)+ "}" { return p }
+slur_notes  = "(" p:(_ pitch _)+ ")" { return p }
 broken_rhythm = "<"+ / ">"+
 
 tuplet = tuplet_spec n:note_element+ {
@@ -284,14 +292,26 @@ tuplet = tuplet_spec n:note_element+ {
 
 tuplet_spec = "(" integer (":" (integer) ( ":" integer? )? )?
 
+// The bang there is a bit of a hack.  It means a forced line break,
+// but is deprecated. -sb
 bar
- = bars _ !(stringNum)
+ = bars "!"? _ !(stringNum)
 
+// I added ":||:", which is clearly specified as "start & end of two
+// repeated sections", but b":||" doesn't seem to be specifically specified,
+// though it occurs in my test tunes, and abcjs handles it, though not
+// sure what semantics it infers from it... same as ":|" I think. -sb
+// And I have no idea what "|:|" ":|:" means! -sb
+// of indicating a line break. -sb
+// No idea what-so-ever what "|>|" should indicate, if anything. -sb
+// I give up documenting the other cases.
+// BTW, order is significant here... longer tokens first. -sb
 bars
- = "|]" / "||" / "[|" / "|]" / "|:" / "|" / ":|" / "::"
+ = "||:" / "[|" / "||" / "|]" / "|>|" / "|:|" / "|:" / "|" / ":|:" / ":||:" /
+  ":||" / ":|]" / ":|" / "::"
 
 nth_repeat
- = "[1" / "[2" / "|1" / ":|2"
+ = "[1" / "[2" / "|1" / "|2" / "|3" / "|4" / ":|2"
 
 // TODO: Validate the chord with /^[A-G](b|#)?((m(aj)?|M|aug|dim|sus)([2-7]|9|13)?)?(\/[A-G](b|#)?)?$/
 guitar_chord
@@ -356,7 +376,7 @@ integer "integer"
  = digits:stringNum { return parseInt(digits, 10); }
 
 string
- = chars:[A-Za-z0-9,/'"#&.=()\-\[\]: ]+ { return chars.join ? chars.join("") : chars; }
+ = chars:[A-Za-z0-9,/'"#&.=()<>?!\-\[\]: ]+ { return chars.join ? chars.join("") : chars; }
 
 string_no_quotes
  = chars:[A-Za-z0-9,/#&.=()\-\[\]: ]+ { return chars.join ? chars.join("") : chars; }

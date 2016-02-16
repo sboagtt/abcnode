@@ -839,25 +839,40 @@ module.exports=(function(){
       
       function parse_meter() {
         var result0;
+        var pos0;
         
-        if (input.charCodeAt(pos) === 67) {
-          result0 = "C";
-          pos++;
+        pos0 = pos;
+        if (input.substr(pos, 2) === "C|") {
+          result0 = "C|";
+          pos += 2;
         } else {
           result0 = null;
           if (reportFailures === 0) {
-            matchFailed("\"C\"");
+            matchFailed("\"C|\"");
           }
         }
+        if (result0 !== null) {
+          result0 = (function(offset) {return "2/2"})(pos0);
+        }
         if (result0 === null) {
-          if (input.substr(pos, 2) === "C|") {
-            result0 = "C|";
-            pos += 2;
+          pos = pos0;
+        }
+        if (result0 === null) {
+          pos0 = pos;
+          if (input.charCodeAt(pos) === 67) {
+            result0 = "C";
+            pos++;
           } else {
             result0 = null;
             if (reportFailures === 0) {
-              matchFailed("\"C|\"");
+              matchFailed("\"C\"");
             }
+          }
+          if (result0 !== null) {
+            result0 = (function(offset) {return "4/4"})(pos0);
+          }
+          if (result0 === null) {
+            pos = pos0;
           }
           if (result0 === null) {
             result0 = parse_meter_fraction();
@@ -1014,15 +1029,11 @@ module.exports=(function(){
             }
           }
           if (result1 !== null) {
+            result2 = [];
             result3 = parse_integer();
-            if (result3 !== null) {
-              result2 = [];
-              while (result3 !== null) {
-                result2.push(result3);
-                result3 = parse_integer();
-              }
-            } else {
-              result2 = null;
+            while (result3 !== null) {
+              result2.push(result3);
+              result3 = parse_integer();
             }
             if (result2 !== null) {
               result1 = [result1, result2];
@@ -2646,7 +2657,7 @@ module.exports=(function(){
       }
       
       function parse_measure() {
-        var result0, result1, result2, result3, result4, result5, result6, result7;
+        var result0, result1, result2, result3, result4, result5, result6, result7, result8;
         var pos0, pos1, pos2;
         
         pos0 = pos;
@@ -2654,6 +2665,9 @@ module.exports=(function(){
         result0 = parse__();
         if (result0 !== null) {
           result1 = parse_bar();
+          if (result1 === null) {
+            result1 = parse_nth_repeat();
+          }
           result1 = result1 !== null ? result1 : "";
           if (result1 !== null) {
             result3 = parse_note_element();
@@ -2673,41 +2687,70 @@ module.exports=(function(){
               result2 = null;
             }
             if (result2 !== null) {
-              result3 = parse__();
-              if (result3 !== null) {
-                result4 = parse_bar();
-                if (result4 === null) {
-                  result4 = parse_nth_repeat();
+              pos2 = pos;
+              if (input.charCodeAt(pos) === 92) {
+                result3 = "\\";
+                pos++;
+              } else {
+                result3 = null;
+                if (reportFailures === 0) {
+                  matchFailed("\"\\\\\"");
                 }
+              }
+              if (result3 !== null) {
+                result4 = parse_nl();
                 if (result4 !== null) {
-                  result5 = parse_nth_repeat();
+                  result3 = [result3, result4];
+                } else {
+                  result3 = null;
+                  pos = pos2;
+                }
+              } else {
+                result3 = null;
+                pos = pos2;
+              }
+              result3 = result3 !== null ? result3 : "";
+              if (result3 !== null) {
+                result4 = parse__();
+                if (result4 !== null) {
+                  result5 = parse_bar();
+                  if (result5 === null) {
+                    result5 = parse_nth_repeat();
+                  }
                   result5 = result5 !== null ? result5 : "";
                   if (result5 !== null) {
-                    pos2 = pos;
-                    if (input.charCodeAt(pos) === 92) {
-                      result6 = "\\";
-                      pos++;
-                    } else {
-                      result6 = null;
-                      if (reportFailures === 0) {
-                        matchFailed("\"\\\\\"");
-                      }
-                    }
-                    if (result6 !== null) {
-                      result7 = parse_nl();
-                      if (result7 !== null) {
-                        result6 = [result6, result7];
-                      } else {
-                        result6 = null;
-                        pos = pos2;
-                      }
-                    } else {
-                      result6 = null;
-                      pos = pos2;
-                    }
+                    result6 = parse_nth_repeat();
                     result6 = result6 !== null ? result6 : "";
                     if (result6 !== null) {
-                      result0 = [result0, result1, result2, result3, result4, result5, result6];
+                      pos2 = pos;
+                      if (input.charCodeAt(pos) === 92) {
+                        result7 = "\\";
+                        pos++;
+                      } else {
+                        result7 = null;
+                        if (reportFailures === 0) {
+                          matchFailed("\"\\\\\"");
+                        }
+                      }
+                      if (result7 !== null) {
+                        result8 = parse_nl();
+                        if (result8 !== null) {
+                          result7 = [result7, result8];
+                        } else {
+                          result7 = null;
+                          pos = pos2;
+                        }
+                      } else {
+                        result7 = null;
+                        pos = pos2;
+                      }
+                      result7 = result7 !== null ? result7 : "";
+                      if (result7 !== null) {
+                        result0 = [result0, result1, result2, result3, result4, result5, result6, result7];
+                      } else {
+                        result0 = null;
+                        pos = pos1;
+                      }
                     } else {
                       result0 = null;
                       pos = pos1;
@@ -2788,15 +2831,18 @@ module.exports=(function(){
         
                 finalNotes.push(note);
             }
-            var mObj = { bar: bar[0], chords: [] };
         
-            // For each note/chord we create a chord object that contains a notes array
-            // with the proper note/chord, and attach it to the chords that the measure
-            // will contain.
-            finalNotes.forEach(function(n) { mObj.chords.push({ notes: n }); });
+            if(bar) {
+              var mObj = { bar: bar[0], chords: [] };
+        
+              // For each note/chord we create a chord object that contains a notes array
+              // with the proper note/chord, and attach it to the chords that the measure
+              // will contain.
+              finalNotes.forEach(function(n) { mObj.chords.push({ notes: n }); });
+            }
         
             return mObj;
-        })(pos0, result0[2], result0[4]);
+        })(pos0, result0[2], result0[5]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -2841,7 +2887,7 @@ module.exports=(function(){
       }
       
       function parse_note_stem() {
-        var result0, result1, result2, result3, result4;
+        var result0, result1, result2, result3, result4, result5;
         var pos0, pos1;
         
         pos0 = pos;
@@ -2849,28 +2895,47 @@ module.exports=(function(){
         result0 = parse_guitar_chord();
         result0 = result0 !== null ? result0 : "";
         if (result0 !== null) {
-          result1 = parse_slur_notes();
-          result1 = result1 !== null ? result1 : "";
+          result1 = parse__();
           if (result1 !== null) {
-            result2 = parse_grace_notes();
-            result2 = result2 !== null ? result2 : "";
-            if (result2 !== null) {
-              result3 = [];
-              result4 = parse_gracings();
-              while (result4 !== null) {
-                result3.push(result4);
-                result4 = parse_gracings();
-              }
-              if (result3 !== null) {
-                result4 = parse_note();
-                if (result4 === null) {
-                  result4 = parse_chord();
-                  if (result4 === null) {
-                    result4 = parse_tuplet();
+            result2 = parse_slur_notes();
+            if (result2 === null) {
+              result2 = parse_grace_notes();
+              if (result2 === null) {
+                if (input.charCodeAt(pos) === 42) {
+                  result2 = "*";
+                  pos++;
+                } else {
+                  result2 = null;
+                  if (reportFailures === 0) {
+                    matchFailed("\"*\"");
                   }
                 }
+              }
+            }
+            result2 = result2 !== null ? result2 : "";
+            if (result2 !== null) {
+              result3 = parse__();
+              if (result3 !== null) {
+                result4 = [];
+                result5 = parse_gracings();
+                while (result5 !== null) {
+                  result4.push(result5);
+                  result5 = parse_gracings();
+                }
                 if (result4 !== null) {
-                  result0 = [result0, result1, result2, result3, result4];
+                  result5 = parse_note();
+                  if (result5 === null) {
+                    result5 = parse_chord();
+                    if (result5 === null) {
+                      result5 = parse_tuplet();
+                    }
+                  }
+                  if (result5 !== null) {
+                    result0 = [result0, result1, result2, result3, result4, result5];
+                  } else {
+                    result0 = null;
+                    pos = pos1;
+                  }
                 } else {
                   result0 = null;
                   pos = pos1;
@@ -2892,16 +2957,16 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, gc, sn, gn, n) {
+          result0 = (function(offset, gc, sng, n) {
                 if (gc)
                     n.guitar_chord = gc;
-                if (gn)
-                    n.grace_notes  = gn;
-                if (sn)
-                    n.slur_notes  = sn;
+                if (sng.gn)
+                    n.grace_notes  = sng.gn;
+                if (sng.sn)
+                    n.slur_notes  = sng.sn;
         
                 return n;
-            })(pos0, result0[0], result0[1], result0[2], result0[4]);
+            })(pos0, result0[0], result0[2], result0[5]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -3043,7 +3108,7 @@ module.exports=(function(){
       }
       
       function parse_pitch() {
-        var result0, result1, result2;
+        var result0, result1, result2, result3;
         var pos0, pos1;
         
         pos0 = pos;
@@ -3053,10 +3118,17 @@ module.exports=(function(){
         if (result0 !== null) {
           result1 = parse_basenote();
           if (result1 !== null) {
-            result2 = parse_octave();
+            result2 = parse_note_length();
             result2 = result2 !== null ? result2 : "";
             if (result2 !== null) {
-              result0 = [result0, result1, result2];
+              result3 = parse_octave();
+              result3 = result3 !== null ? result3 : "";
+              if (result3 !== null) {
+                result0 = [result0, result1, result2, result3];
+              } else {
+                result0 = null;
+                pos = pos1;
+              }
             } else {
               result0 = null;
               pos = pos1;
@@ -3070,17 +3142,20 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, acc, bn, o) {
+          result0 = (function(offset, acc, bn, notelen, o) {
             var obj = {
                 accidental: acc,
                 note: bn + o
+            }
+            if(notelen){
+              obj.length = notelen;
             }
         
             if (!acc)
                 delete obj.accidental;
         
             return obj;
-        })(pos0, result0[0], result0[1], result0[2]);
+        })(pos0, result0[0], result0[1], result0[2], result0[3]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -3227,8 +3302,8 @@ module.exports=(function(){
       }
       
       function parse_grace_notes() {
-        var result0, result1, result2;
-        var pos0, pos1;
+        var result0, result1, result2, result3, result4;
+        var pos0, pos1, pos2;
         
         pos0 = pos;
         pos1 = pos;
@@ -3242,12 +3317,50 @@ module.exports=(function(){
           }
         }
         if (result0 !== null) {
-          result2 = parse_pitch();
+          pos2 = pos;
+          result2 = parse__();
+          if (result2 !== null) {
+            result3 = parse_pitch();
+            if (result3 !== null) {
+              result4 = parse__();
+              if (result4 !== null) {
+                result2 = [result2, result3, result4];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
           if (result2 !== null) {
             result1 = [];
             while (result2 !== null) {
               result1.push(result2);
-              result2 = parse_pitch();
+              pos2 = pos;
+              result2 = parse__();
+              if (result2 !== null) {
+                result3 = parse_pitch();
+                if (result3 !== null) {
+                  result4 = parse__();
+                  if (result4 !== null) {
+                    result2 = [result2, result3, result4];
+                  } else {
+                    result2 = null;
+                    pos = pos2;
+                  }
+                } else {
+                  result2 = null;
+                  pos = pos2;
+                }
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
             }
           } else {
             result1 = null;
@@ -3286,8 +3399,8 @@ module.exports=(function(){
       }
       
       function parse_slur_notes() {
-        var result0, result1, result2;
-        var pos0, pos1;
+        var result0, result1, result2, result3, result4;
+        var pos0, pos1, pos2;
         
         pos0 = pos;
         pos1 = pos;
@@ -3301,12 +3414,50 @@ module.exports=(function(){
           }
         }
         if (result0 !== null) {
-          result2 = parse_pitch();
+          pos2 = pos;
+          result2 = parse__();
+          if (result2 !== null) {
+            result3 = parse_pitch();
+            if (result3 !== null) {
+              result4 = parse__();
+              if (result4 !== null) {
+                result2 = [result2, result3, result4];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
           if (result2 !== null) {
             result1 = [];
             while (result2 !== null) {
               result1.push(result2);
-              result2 = parse_pitch();
+              pos2 = pos;
+              result2 = parse__();
+              if (result2 !== null) {
+                result3 = parse_pitch();
+                if (result3 !== null) {
+                  result4 = parse__();
+                  if (result4 !== null) {
+                    result2 = [result2, result3, result4];
+                  } else {
+                    result2 = null;
+                    pos = pos2;
+                  }
+                } else {
+                  result2 = null;
+                  pos = pos2;
+                }
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
             }
           } else {
             result1 = null;
@@ -3533,26 +3684,41 @@ module.exports=(function(){
       }
       
       function parse_bar() {
-        var result0, result1, result2;
+        var result0, result1, result2, result3;
         var pos0, pos1;
         
         pos0 = pos;
         result0 = parse_bars();
         if (result0 !== null) {
-          result1 = parse__();
-          if (result1 !== null) {
-            pos1 = pos;
-            reportFailures++;
-            result2 = parse_stringNum();
-            reportFailures--;
-            if (result2 === null) {
-              result2 = "";
-            } else {
-              result2 = null;
-              pos = pos1;
+          if (input.charCodeAt(pos) === 33) {
+            result1 = "!";
+            pos++;
+          } else {
+            result1 = null;
+            if (reportFailures === 0) {
+              matchFailed("\"!\"");
             }
+          }
+          result1 = result1 !== null ? result1 : "";
+          if (result1 !== null) {
+            result2 = parse__();
             if (result2 !== null) {
-              result0 = [result0, result1, result2];
+              pos1 = pos;
+              reportFailures++;
+              result3 = parse_stringNum();
+              reportFailures--;
+              if (result3 === null) {
+                result3 = "";
+              } else {
+                result3 = null;
+                pos = pos1;
+              }
+              if (result3 !== null) {
+                result0 = [result0, result1, result2, result3];
+              } else {
+                result0 = null;
+                pos = pos0;
+              }
             } else {
               result0 = null;
               pos = pos0;
@@ -3571,33 +3737,33 @@ module.exports=(function(){
       function parse_bars() {
         var result0;
         
-        if (input.substr(pos, 2) === "|]") {
-          result0 = "|]";
-          pos += 2;
+        if (input.substr(pos, 3) === "||:") {
+          result0 = "||:";
+          pos += 3;
         } else {
           result0 = null;
           if (reportFailures === 0) {
-            matchFailed("\"|]\"");
+            matchFailed("\"||:\"");
           }
         }
         if (result0 === null) {
-          if (input.substr(pos, 2) === "||") {
-            result0 = "||";
+          if (input.substr(pos, 2) === "[|") {
+            result0 = "[|";
             pos += 2;
           } else {
             result0 = null;
             if (reportFailures === 0) {
-              matchFailed("\"||\"");
+              matchFailed("\"[|\"");
             }
           }
           if (result0 === null) {
-            if (input.substr(pos, 2) === "[|") {
-              result0 = "[|";
+            if (input.substr(pos, 2) === "||") {
+              result0 = "||";
               pos += 2;
             } else {
               result0 = null;
               if (reportFailures === 0) {
-                matchFailed("\"[|\"");
+                matchFailed("\"||\"");
               }
             }
             if (result0 === null) {
@@ -3611,43 +3777,109 @@ module.exports=(function(){
                 }
               }
               if (result0 === null) {
-                if (input.substr(pos, 2) === "|:") {
-                  result0 = "|:";
-                  pos += 2;
+                if (input.substr(pos, 3) === "|>|") {
+                  result0 = "|>|";
+                  pos += 3;
                 } else {
                   result0 = null;
                   if (reportFailures === 0) {
-                    matchFailed("\"|:\"");
+                    matchFailed("\"|>|\"");
                   }
                 }
                 if (result0 === null) {
-                  if (input.charCodeAt(pos) === 124) {
-                    result0 = "|";
-                    pos++;
+                  if (input.substr(pos, 3) === "|:|") {
+                    result0 = "|:|";
+                    pos += 3;
                   } else {
                     result0 = null;
                     if (reportFailures === 0) {
-                      matchFailed("\"|\"");
+                      matchFailed("\"|:|\"");
                     }
                   }
                   if (result0 === null) {
-                    if (input.substr(pos, 2) === ":|") {
-                      result0 = ":|";
+                    if (input.substr(pos, 2) === "|:") {
+                      result0 = "|:";
                       pos += 2;
                     } else {
                       result0 = null;
                       if (reportFailures === 0) {
-                        matchFailed("\":|\"");
+                        matchFailed("\"|:\"");
                       }
                     }
                     if (result0 === null) {
-                      if (input.substr(pos, 2) === "::") {
-                        result0 = "::";
-                        pos += 2;
+                      if (input.charCodeAt(pos) === 124) {
+                        result0 = "|";
+                        pos++;
                       } else {
                         result0 = null;
                         if (reportFailures === 0) {
-                          matchFailed("\"::\"");
+                          matchFailed("\"|\"");
+                        }
+                      }
+                      if (result0 === null) {
+                        if (input.substr(pos, 3) === ":|:") {
+                          result0 = ":|:";
+                          pos += 3;
+                        } else {
+                          result0 = null;
+                          if (reportFailures === 0) {
+                            matchFailed("\":|:\"");
+                          }
+                        }
+                        if (result0 === null) {
+                          if (input.substr(pos, 4) === ":||:") {
+                            result0 = ":||:";
+                            pos += 4;
+                          } else {
+                            result0 = null;
+                            if (reportFailures === 0) {
+                              matchFailed("\":||:\"");
+                            }
+                          }
+                          if (result0 === null) {
+                            if (input.substr(pos, 3) === ":||") {
+                              result0 = ":||";
+                              pos += 3;
+                            } else {
+                              result0 = null;
+                              if (reportFailures === 0) {
+                                matchFailed("\":||\"");
+                              }
+                            }
+                            if (result0 === null) {
+                              if (input.substr(pos, 3) === ":|]") {
+                                result0 = ":|]";
+                                pos += 3;
+                              } else {
+                                result0 = null;
+                                if (reportFailures === 0) {
+                                  matchFailed("\":|]\"");
+                                }
+                              }
+                              if (result0 === null) {
+                                if (input.substr(pos, 2) === ":|") {
+                                  result0 = ":|";
+                                  pos += 2;
+                                } else {
+                                  result0 = null;
+                                  if (reportFailures === 0) {
+                                    matchFailed("\":|\"");
+                                  }
+                                }
+                                if (result0 === null) {
+                                  if (input.substr(pos, 2) === "::") {
+                                    result0 = "::";
+                                    pos += 2;
+                                  } else {
+                                    result0 = null;
+                                    if (reportFailures === 0) {
+                                      matchFailed("\"::\"");
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     }
@@ -3693,13 +3925,46 @@ module.exports=(function(){
               }
             }
             if (result0 === null) {
-              if (input.substr(pos, 3) === ":|2") {
-                result0 = ":|2";
-                pos += 3;
+              if (input.substr(pos, 2) === "|2") {
+                result0 = "|2";
+                pos += 2;
               } else {
                 result0 = null;
                 if (reportFailures === 0) {
-                  matchFailed("\":|2\"");
+                  matchFailed("\"|2\"");
+                }
+              }
+              if (result0 === null) {
+                if (input.substr(pos, 2) === "|3") {
+                  result0 = "|3";
+                  pos += 2;
+                } else {
+                  result0 = null;
+                  if (reportFailures === 0) {
+                    matchFailed("\"|3\"");
+                  }
+                }
+                if (result0 === null) {
+                  if (input.substr(pos, 2) === "|4") {
+                    result0 = "|4";
+                    pos += 2;
+                  } else {
+                    result0 = null;
+                    if (reportFailures === 0) {
+                      matchFailed("\"|4\"");
+                    }
+                  }
+                  if (result0 === null) {
+                    if (input.substr(pos, 3) === ":|2") {
+                      result0 = ":|2";
+                      pos += 3;
+                    } else {
+                      result0 = null;
+                      if (reportFailures === 0) {
+                        matchFailed("\":|2\"");
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -4139,26 +4404,26 @@ module.exports=(function(){
         var pos0;
         
         pos0 = pos;
-        if (/^[A-Za-z0-9,\/'"#&.=()\-[\]: ]/.test(input.charAt(pos))) {
+        if (/^[A-Za-z0-9,\/'"#&.=()<>?!\-[\]: ]/.test(input.charAt(pos))) {
           result1 = input.charAt(pos);
           pos++;
         } else {
           result1 = null;
           if (reportFailures === 0) {
-            matchFailed("[A-Za-z0-9,\\/'\"#&.=()\\-[\\]: ]");
+            matchFailed("[A-Za-z0-9,\\/'\"#&.=()<>?!\\-[\\]: ]");
           }
         }
         if (result1 !== null) {
           result0 = [];
           while (result1 !== null) {
             result0.push(result1);
-            if (/^[A-Za-z0-9,\/'"#&.=()\-[\]: ]/.test(input.charAt(pos))) {
+            if (/^[A-Za-z0-9,\/'"#&.=()<>?!\-[\]: ]/.test(input.charAt(pos))) {
               result1 = input.charAt(pos);
               pos++;
             } else {
               result1 = null;
               if (reportFailures === 0) {
-                matchFailed("[A-Za-z0-9,\\/'\"#&.=()\\-[\\]: ]");
+                matchFailed("[A-Za-z0-9,\\/'\"#&.=()<>?!\\-[\\]: ]");
               }
             }
           }
