@@ -1764,7 +1764,7 @@ module.exports=(function(){
       
       function parse_mode_minor() {
         var result0, result1, result2;
-        var pos0, pos1, pos2;
+        var pos0, pos1;
         
         pos0 = pos;
         pos1 = pos;
@@ -1789,7 +1789,6 @@ module.exports=(function(){
           }
         }
         if (result0 !== null) {
-          pos2 = pos;
           if (input.charCodeAt(pos) === 105) {
             result1 = "i";
             pos++;
@@ -1832,18 +1831,11 @@ module.exports=(function(){
               }
             }
             if (result2 !== null) {
-              result1 = [result1, result2];
+              result0 = [result0, result1, result2];
             } else {
-              result1 = null;
-              pos = pos2;
+              result0 = null;
+              pos = pos1;
             }
-          } else {
-            result1 = null;
-            pos = pos2;
-          }
-          result1 = result1 !== null ? result1 : "";
-          if (result1 !== null) {
-            result0 = [result0, result1];
           } else {
             result0 = null;
             pos = pos1;
