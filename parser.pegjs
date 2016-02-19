@@ -59,7 +59,7 @@ header
  = refnum:reference_number? title:title+ pairs:(other_fields _)* k:(key _) {
     var p = {
         refnum: refnum || 1, // Fallback to 1 for songs that don't include one
-        title:  title[0],
+        titles:  title,
         key:    k[0]
     }
     for (i = 0; i < pairs.length; i++) {
@@ -144,7 +144,7 @@ mode            = mode_minor / mode_major / mode_lydian / mode_ionian / mode_mix
 extratext       = alpha*
 global_accidental = accidental basenote
 
-mode_minor      = chars:(("m"/"M") ("i"/"I") ("n"/"N")) { return chars.join("") }
+mode_minor      = chars:(("m"/"M") ("i"/"I")? ("n"/"N")?) { return chars.join("") }
 mode_major      = chars:(("m"/"M") ("a"/"A") ("j"/"J")) { return chars.join("") }
 mode_lydian     = chars:(("l"/"L") ("y"/"Y") ("d"/"D")) { return chars.join("") }
 mode_ionian     = chars:(("i"/"I") ("o"/"O") ("n"/"N")) { return chars.join("") }

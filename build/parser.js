@@ -289,7 +289,7 @@ module.exports=(function(){
           result0 = (function(offset, refnum, title, pairs, k) {
             var p = {
                 refnum: refnum || 1, // Fallback to 1 for songs that don't include one
-                title:  title[0],
+                titles:  title,
                 key:    k[0]
             }
             for (i = 0; i < pairs.length; i++) {
@@ -1809,6 +1809,7 @@ module.exports=(function(){
               }
             }
           }
+          result1 = result1 !== null ? result1 : "";
           if (result1 !== null) {
             if (input.charCodeAt(pos) === 110) {
               result2 = "n";
@@ -1830,6 +1831,7 @@ module.exports=(function(){
                 }
               }
             }
+            result2 = result2 !== null ? result2 : "";
             if (result2 !== null) {
               result0 = [result0, result1, result2];
             } else {
