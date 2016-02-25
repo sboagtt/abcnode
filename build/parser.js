@@ -2585,9 +2585,10 @@ module.exports=(function(){
       
       function parse_song() {
         var result0, result1;
-        var pos0;
+        var pos0, pos1;
         
         pos0 = pos;
+        pos1 = pos;
         result1 = parse_stave();
         if (result1 !== null) {
           result0 = [];
@@ -2604,10 +2605,16 @@ module.exports=(function(){
             result0 = [result0, result1];
           } else {
             result0 = null;
-            pos = pos0;
+            pos = pos1;
           }
         } else {
           result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, staves) {return staves;})(pos0, result0[0]);
+        }
+        if (result0 === null) {
           pos = pos0;
         }
         return result0;
@@ -2642,7 +2649,40 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, measures) { return measures; })(pos0, result0[0]);
+          result0 = (function(offset, measures) {
+        
+           var parts = [];
+           var part = []
+           var sectionIDs = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "X", "Y", "Z"];
+        
+           // For each note/chord we create a chord object that contains a notes array
+           // with the proper note/chord, and attach it to the chords that the measure
+           // will contain.
+           var sectionCount = 0;
+           measures.forEach(function(mObj) {
+             if(mObj.bar.length <= 1){
+               part.push(mObj);
+             }
+             else {
+               part.push(mObj);
+               var pID = "";
+               if(mObj.bar.length = 0){
+                 pID = "pickup";
+               }
+               else {
+                 pID = sectionIDs[sectionCount];
+               }
+               var sObj = {partID: pID, measures: part};
+               parts.push(sObj);
+               part = [];
+               sectionCount++;
+             }
+           });
+           if(part.length > 0){
+              parts.push(part);
+           }
+           return parts;
+        })(pos0, result0[0]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -2826,14 +2866,20 @@ module.exports=(function(){
                 finalNotes.push(note);
             }
         
+            var mObj;
             if(bar) {
-              var mObj = { bar: bar[0], chords: [] };
-        
-              // For each note/chord we create a chord object that contains a notes array
-              // with the proper note/chord, and attach it to the chords that the measure
-              // will contain.
-              finalNotes.forEach(function(n) { mObj.chords.push({ notes: n }); });
+              mObj = { bar: bar[0], measure: [] };
             }
+            else {
+              mObj = { bar: "", measure: [] };
+            }
+        
+            // For each note/chord we create a chord object that contains a notes array
+            // with the proper note/chord, and attach it to the chords that the measure
+            // will contain.
+            finalNotes.forEach(function(n) {
+              mObj.measure.push({ notespec: n });
+            });
         
             return mObj;
         })(pos0, result0[2], result0[5]);

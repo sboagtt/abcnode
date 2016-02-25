@@ -157,10 +157,43 @@ mode_locrian    = chars:(("l"/"L") ("o"/"O") ("c"/"C")) { return chars.join("") 
 /*-------------------------------- Song -------------------------------------*/
 
 song
- = stave+ _
+ = staves:stave+ _ {return staves;}
 
 stave
- = measures:measure+ _ { return measures; }
+ = measures:measure+ _ {
+
+   var parts = [];
+   var part = []
+   var sectionIDs = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "X", "Y", "Z"];
+
+   // For each note/chord we create a chord object that contains a notes array
+   // with the proper note/chord, and attach it to the chords that the measure
+   // will contain.
+   var sectionCount = 0;
+   measures.forEach(function(mObj) {
+     if(mObj.bar.length <= 1){
+       part.push(mObj);
+     }
+     else {
+       part.push(mObj);
+       var pID = "";
+       if(mObj.bar.length = 0){
+         pID = "pickup";
+       }
+       else {
+         pID = sectionIDs[sectionCount];
+       }
+       var sObj = {partID: pID, measures: part};
+       parts.push(sObj);
+       part = [];
+       sectionCount++;
+     }
+   });
+   if(part.length > 0){
+      parts.push(part);
+   }
+   return parts;
+}
 
 measure
  = _ (bar / nth_repeat)? notes:(note_element / tuplet)+ ("\\" nl)? _ bar:(bar / nth_repeat)? nth_repeat? ("\\" nl)? {
@@ -215,14 +248,20 @@ measure
         finalNotes.push(note);
     }
 
+    var mObj;
     if(bar) {
-      var mObj = { bar: bar[0], chords: [] };
-
-      // For each note/chord we create a chord object that contains a notes array
-      // with the proper note/chord, and attach it to the chords that the measure
-      // will contain.
-      finalNotes.forEach(function(n) { mObj.chords.push({ notes: n }); });
+      mObj = { bar: bar[0], measure: [] };
     }
+    else {
+      mObj = { bar: "", measure: [] };
+    }
+
+    // For each note/chord we create a chord object that contains a notes array
+    // with the proper note/chord, and attach it to the chords that the measure
+    // will contain.
+    finalNotes.forEach(function(n) {
+      mObj.measure.push({ notespec: n });
+    });
 
     return mObj;
 }
