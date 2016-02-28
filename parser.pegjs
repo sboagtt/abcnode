@@ -5,13 +5,13 @@
     var WHOLE   = 256,
         HALF    = 128,
         QUARTER = 64,
-        _4TH    = 32,
+        _8th    = 32,
         _16TH   = 16,
         _32TH   = 8,
         _64TH   = 4,
         _128TH  = 2;
 
-    var durations = [_128TH, _64TH, _32TH, _16TH, _4TH, QUARTER, HALF, WHOLE];
+    var durations = [_128TH, _64TH, _32TH, _16TH, _8th, QUARTER, HALF, WHOLE];
     var isDotted = function(duration) {
         return durations.indexOf(duration) === -1;
     };
@@ -115,7 +115,19 @@ tempo = integer+ / ("C" note_length? "=" integer+) / (note_length_strict "=" int
 meter = "C|" {return "2/2"} / "C" {return "4/4"} / meter_fraction
 meter_fraction     = l:(integer+ "/" integer+) { return l.join("") }
 note_length_strict = l:(integer+ "/" integer+) { return l.join("") }
-note_length = (integer+)? ("/" (integer*))?
+note_length = multiplier:integer? divop:"/"? divider:integer? {
+  var nl = {};
+  if(multiplier) {
+    nl.multiplier = multiplier;
+  }
+  if(divop) {
+    nl.divop = divop;
+  }
+  if(divider) {
+    nl.divider = divider;
+  }
+  return nl;
+}
 parts = part_spec+
 part_spec = (part / ( "(" part_spec+ ")" ) ) integer+
 part = "A" / "B" / "C" / "D" / "E" / "F" / "G" / "H" / "I" / "J" / "K" / "L" / "M" / "N" / "O" / "P" / "Q" / "R" / "S" / "T" / "U" / "V" / "X" / "Y" / "Z"
@@ -227,6 +239,30 @@ measure
         }
 
         if (len > 1) {
+            // console.log("Checking if note.duration is there...");
+            if(note.duration){
+              // console.log("processing note.duration...");
+              if(note.duration.dots){
+                 // console.log("processing dots...");
+                 note.duration.dots.forEach(function(dot) {
+                    var halfNoteValue = note.duration.duration / 2
+                    // console.log("processing dot: " + dot+", half note value: "+halfNoteValue);
+                    if(dot == ">"){                      
+                      note.duration.duration += halfNoteValue;
+                      if(n < (notes.length-1) && notes[n+1].duration){
+                        notes[n+1].duration.duration -= halfNoteValue;
+                      }
+                    }
+                    else if(dot == "<"){
+                      note.duration.duration -= halfNoteValue;
+                      if(n > 0 && notes[n-1].duration){
+                        notes[n-1].duration.duration += halfNoteValue;
+                      }
+                    }
+                 });
+              }
+            }
+            
             if (note.duration < QUARTER &&
                 !((n === len-1) && !lastBeamLen)) {
                     lastBeam.push(note);
@@ -266,7 +302,18 @@ measure
     return mObj;
 }
 
-note_element = n:note_stem broken_rhythm? _? { return n }
+note_element = n:note_stem br:broken_rhythm* _? {
+  
+  if(br && br.length > 0){
+    if(!n.duration){
+      n.duration = {};
+    }
+    n.duration.dots = br;
+  }
+  
+  return n 
+}
+
 note_stem
     = gc:guitar_chord? _ sng:(sn:slur_notes / gn:grace_notes / "*")? _ gracings*
       n:(note / chord / tuplet) {
@@ -282,36 +329,74 @@ note_stem
 
 chord = "[" n:note+ "]" { return n }
 
-note = n:note_or_rest time:time_signature? _? tie:tie? {
-    if (time) {
-        n.duration = time.duration;
-        n.dots = time.dots
-    }
-    else {
-        n.duration = defaultTime || defaultMeter;
-    }
+note = n:pitch _? tie:tie? {
 
     if (tie)
         n.tie = true;
 
     return n;
 }
-note_or_rest = n:(pitch / rest) { return n }
 
-pitch = acc:accidental? bn:basenote notelen:note_length? o:octave? {
-    var obj = {
-        accidental: acc,
-        note: bn + o
-    }
+// note_or_rest = n:(pitch / rest) { return n }
+
+pitch = nor:note_or_rest notelen:note_length? o:octave? {
+    var obj = nor;
+    
     if(notelen){
-      obj.length = notelen;
+      // console.log("Have a notelen");
+      // console.log("   Have a notelen: "+JSON.stringify(notelen));
+      if(notelen.multiplier && notelen.divop  && notelen.divider){
+        var num    = notelen.multiplier * (defaultTime || defaultMeter);
+        var denom  = notelen.divider;
+        var result = num/denom;
+        obj.duration = {duration: result};
+        obj.length = notelen;
+      }
+      else if(notelen.divop  && notelen.divider){
+        var num    = notelen.multiplier * (defaultTime || defaultMeter);
+        var denom  = notelen.divider;
+        var result = (defaultTime || defaultMeter) / notelen.divider;
+        obj.duration = {duration: result};
+        obj.length = notelen;
+      }
+      else if(notelen.divop){
+        var result = (defaultTime || defaultMeter) / 2;
+        obj.duration = {duration: result};
+        obj.length = notelen;
+      }
+      else if(notelen.multiplier){
+        var duration = (defaultTime || defaultMeter) * notelen.multiplier;
+        obj.duration = {duration: duration};
+        obj.length = notelen;
+      }
+      else {
+        var duration = defaultTime || defaultMeter;
+        obj.duration = {duration: duration};
+      }
     }
-
-    if (!acc)
-        delete obj.accidental;
 
     return obj;
 }
+
+note_or_rest = nwa:note_with_accidental / rest:rest
+{
+  if(rest){
+    return {note: "rest"};
+  }
+  else {
+    return nwa;
+  }
+}
+
+note_with_accidental = acc:accidental? bn:basenote
+{
+  var obj = { note: bn };
+  if(acc){
+    obj.accidental = acc;
+  }
+  return obj;
+}
+
 
 octave       = "'" / ","
 basenote     = [A-G] / [a-g]
@@ -385,6 +470,7 @@ middle_pairs
 time_signature
  =
     ts:(stringNum "/" stringNum) {
+        // console.log("time_signature first case")
         var num    = parseInt(ts[0]) * (defaultTime || defaultMeter);
         var denom  = parseInt(ts[2]);
         var result = parseInt(num/denom);
@@ -393,15 +479,18 @@ time_signature
     }
     /
     ts:("/" cd:stringNum) {
+        // console.log("time_signature second case")
         var result = parseInt((defaultTime || defaultMeter) / parseInt(ts[1]));
         return createTimeSignature(result);
     }
     /
     ts:stringNum  {
+        // console.log("time_signature third case")
         return createTimeSignature(parseFloat((defaultTime || defaultMeter) * eval(ts)))
     }
     /
     ts:("/") {
+        // console.log("time_signature forth case: "+defaultTime+", "+defaultMeter)
         var result = parseInt((defaultTime || defaultMeter) / 2);
         return createTimeSignature(result);
     }

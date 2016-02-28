@@ -75,8 +75,9 @@ module.exports=(function(){
         "note_stem": parse_note_stem,
         "chord": parse_chord,
         "note": parse_note,
-        "note_or_rest": parse_note_or_rest,
         "pitch": parse_pitch,
+        "note_or_rest": parse_note_or_rest,
+        "note_with_accidental": parse_note_with_accidental,
         "octave": parse_octave,
         "basenote": parse_basenote,
         "rest": parse_rest,
@@ -1002,23 +1003,14 @@ module.exports=(function(){
       }
       
       function parse_note_length() {
-        var result0, result1, result2, result3;
+        var result0, result1, result2;
         var pos0, pos1;
         
         pos0 = pos;
-        result1 = parse_integer();
-        if (result1 !== null) {
-          result0 = [];
-          while (result1 !== null) {
-            result0.push(result1);
-            result1 = parse_integer();
-          }
-        } else {
-          result0 = null;
-        }
+        pos1 = pos;
+        result0 = parse_integer();
         result0 = result0 !== null ? result0 : "";
         if (result0 !== null) {
-          pos1 = pos;
           if (input.charCodeAt(pos) === 47) {
             result1 = "/";
             pos++;
@@ -1028,32 +1020,40 @@ module.exports=(function(){
               matchFailed("\"/\"");
             }
           }
+          result1 = result1 !== null ? result1 : "";
           if (result1 !== null) {
-            result2 = [];
-            result3 = parse_integer();
-            while (result3 !== null) {
-              result2.push(result3);
-              result3 = parse_integer();
-            }
+            result2 = parse_integer();
+            result2 = result2 !== null ? result2 : "";
             if (result2 !== null) {
-              result1 = [result1, result2];
+              result0 = [result0, result1, result2];
             } else {
-              result1 = null;
+              result0 = null;
               pos = pos1;
             }
           } else {
-            result1 = null;
-            pos = pos1;
-          }
-          result1 = result1 !== null ? result1 : "";
-          if (result1 !== null) {
-            result0 = [result0, result1];
-          } else {
             result0 = null;
-            pos = pos0;
+            pos = pos1;
           }
         } else {
           result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, multiplier, divop, divider) {
+          var nl = {};
+          if(multiplier) {
+            nl.multiplier = multiplier;
+          }
+          if(divop) {
+            nl.divop = divop;
+          }
+          if(divider) {
+            nl.divider = divider;
+          }
+          return nl;
+        })(pos0, result0[0], result0[1], result0[2]);
+        }
+        if (result0 === null) {
           pos = pos0;
         }
         return result0;
@@ -2845,6 +2845,30 @@ module.exports=(function(){
                 }
         
                 if (len > 1) {
+                    // console.log("Checking if note.duration is there...");
+                    if(note.duration){
+                      // console.log("processing note.duration...");
+                      if(note.duration.dots){
+                         // console.log("processing dots...");
+                         note.duration.dots.forEach(function(dot) {
+                            var halfNoteValue = note.duration.duration / 2
+                            // console.log("processing dot: " + dot+", half note value: "+halfNoteValue);
+                            if(dot == ">"){                      
+                              note.duration.duration += halfNoteValue;
+                              if(n < (notes.length-1) && notes[n+1].duration){
+                                notes[n+1].duration.duration -= halfNoteValue;
+                              }
+                            }
+                            else if(dot == "<"){
+                              note.duration.duration -= halfNoteValue;
+                              if(n > 0 && notes[n-1].duration){
+                                notes[n-1].duration.duration += halfNoteValue;
+                              }
+                            }
+                         });
+                      }
+                    }
+                    
                     if (note.duration < QUARTER &&
                         !((n === len-1) && !lastBeamLen)) {
                             lastBeam.push(note);
@@ -2898,8 +2922,12 @@ module.exports=(function(){
         pos1 = pos;
         result0 = parse_note_stem();
         if (result0 !== null) {
-          result1 = parse_broken_rhythm();
-          result1 = result1 !== null ? result1 : "";
+          result1 = [];
+          result2 = parse_broken_rhythm();
+          while (result2 !== null) {
+            result1.push(result2);
+            result2 = parse_broken_rhythm();
+          }
           if (result1 !== null) {
             result2 = parse__();
             result2 = result2 !== null ? result2 : "";
@@ -2918,7 +2946,17 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, n) { return n })(pos0, result0[0]);
+          result0 = (function(offset, n, br) {
+          
+          if(br && br.length > 0){
+            if(!n.duration){
+              n.duration = {};
+            }
+            n.duration.dots = br;
+          }
+          
+          return n 
+        })(pos0, result0[0], result0[1]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -3074,27 +3112,20 @@ module.exports=(function(){
       }
       
       function parse_note() {
-        var result0, result1, result2, result3;
+        var result0, result1, result2;
         var pos0, pos1;
         
         pos0 = pos;
         pos1 = pos;
-        result0 = parse_note_or_rest();
+        result0 = parse_pitch();
         if (result0 !== null) {
-          result1 = parse_time_signature();
+          result1 = parse__();
           result1 = result1 !== null ? result1 : "";
           if (result1 !== null) {
-            result2 = parse__();
+            result2 = parse_tie();
             result2 = result2 !== null ? result2 : "";
             if (result2 !== null) {
-              result3 = parse_tie();
-              result3 = result3 !== null ? result3 : "";
-              if (result3 !== null) {
-                result0 = [result0, result1, result2, result3];
-              } else {
-                result0 = null;
-                pos = pos1;
-              }
+              result0 = [result0, result1, result2];
             } else {
               result0 = null;
               pos = pos1;
@@ -3108,20 +3139,86 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, n, time, tie) {
-            if (time) {
-                n.duration = time.duration;
-                n.dots = time.dots
-            }
-            else {
-                n.duration = defaultTime || defaultMeter;
-            }
+          result0 = (function(offset, n, tie) {
         
             if (tie)
                 n.tie = true;
         
             return n;
-        })(pos0, result0[0], result0[1], result0[3]);
+        })(pos0, result0[0], result0[2]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_pitch() {
+        var result0, result1, result2;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_note_or_rest();
+        if (result0 !== null) {
+          result1 = parse_note_length();
+          result1 = result1 !== null ? result1 : "";
+          if (result1 !== null) {
+            result2 = parse_octave();
+            result2 = result2 !== null ? result2 : "";
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, nor, notelen, o) {
+            var obj = nor;
+            
+            if(notelen){
+              // console.log("Have a notelen");
+              // console.log("   Have a notelen: "+JSON.stringify(notelen));
+              if(notelen.multiplier && notelen.divop  && notelen.divider){
+                var num    = notelen.multiplier * (defaultTime || defaultMeter);
+                var denom  = notelen.divider;
+                var result = num/denom;
+                obj.duration = {duration: result};
+                obj.length = notelen;
+              }
+              else if(notelen.divop  && notelen.divider){
+                var num    = notelen.multiplier * (defaultTime || defaultMeter);
+                var denom  = notelen.divider;
+                var result = (defaultTime || defaultMeter) / notelen.divider;
+                obj.duration = {duration: result};
+                obj.length = notelen;
+              }
+              else if(notelen.divop){
+                var result = (defaultTime || defaultMeter) / 2;
+                obj.duration = {duration: result};
+                obj.length = notelen;
+              }
+              else if(notelen.multiplier){
+                var duration = (defaultTime || defaultMeter) * notelen.multiplier;
+                obj.duration = {duration: duration};
+                obj.length = notelen;
+              }
+              else {
+                var duration = defaultTime || defaultMeter;
+                obj.duration = {duration: duration};
+              }
+            }
+        
+            return obj;
+        })(pos0, result0[0], result0[1], result0[2]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -3133,22 +3230,29 @@ module.exports=(function(){
         var result0;
         var pos0;
         
-        pos0 = pos;
-        result0 = parse_pitch();
+        result0 = parse_note_with_accidental();
         if (result0 === null) {
+          pos0 = pos;
           result0 = parse_rest();
-        }
-        if (result0 !== null) {
-          result0 = (function(offset, n) { return n })(pos0, result0);
-        }
-        if (result0 === null) {
-          pos = pos0;
+          if (result0 !== null) {
+            result0 = (function(offset, rest) {
+            if(rest){
+              return {note: "rest"};
+            }
+            else {
+              return nwa;
+            }
+          })(pos0, result0);
+          }
+          if (result0 === null) {
+            pos = pos0;
+          }
         }
         return result0;
       }
       
-      function parse_pitch() {
-        var result0, result1, result2, result3;
+      function parse_note_with_accidental() {
+        var result0, result1;
         var pos0, pos1;
         
         pos0 = pos;
@@ -3158,21 +3262,7 @@ module.exports=(function(){
         if (result0 !== null) {
           result1 = parse_basenote();
           if (result1 !== null) {
-            result2 = parse_note_length();
-            result2 = result2 !== null ? result2 : "";
-            if (result2 !== null) {
-              result3 = parse_octave();
-              result3 = result3 !== null ? result3 : "";
-              if (result3 !== null) {
-                result0 = [result0, result1, result2, result3];
-              } else {
-                result0 = null;
-                pos = pos1;
-              }
-            } else {
-              result0 = null;
-              pos = pos1;
-            }
+            result0 = [result0, result1];
           } else {
             result0 = null;
             pos = pos1;
@@ -3182,20 +3272,13 @@ module.exports=(function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, acc, bn, notelen, o) {
-            var obj = {
-                accidental: acc,
-                note: bn + o
-            }
-            if(notelen){
-              obj.length = notelen;
-            }
-        
-            if (!acc)
-                delete obj.accidental;
-        
-            return obj;
-        })(pos0, result0[0], result0[1], result0[2], result0[3]);
+          result0 = (function(offset, acc, bn) {
+          var obj = { note: bn };
+          if(acc){
+            obj.accidental = acc;
+          }
+          return obj;
+        })(pos0, result0[0], result0[1]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -4299,6 +4382,7 @@ module.exports=(function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, ts) {
+                // console.log("time_signature first case")
                 var num    = parseInt(ts[0]) * (defaultTime || defaultMeter);
                 var denom  = parseInt(ts[2]);
                 var result = parseInt(num/denom);
@@ -4335,6 +4419,7 @@ module.exports=(function(){
           }
           if (result0 !== null) {
             result0 = (function(offset, ts) {
+                  // console.log("time_signature second case")
                   var result = parseInt((defaultTime || defaultMeter) / parseInt(ts[1]));
                   return createTimeSignature(result);
               })(pos0, result0);
@@ -4347,6 +4432,7 @@ module.exports=(function(){
             result0 = parse_stringNum();
             if (result0 !== null) {
               result0 = (function(offset, ts) {
+                    // console.log("time_signature third case")
                     return createTimeSignature(parseFloat((defaultTime || defaultMeter) * eval(ts)))
                 })(pos0, result0);
             }
@@ -4366,6 +4452,7 @@ module.exports=(function(){
               }
               if (result0 !== null) {
                 result0 = (function(offset, ts) {
+                      // console.log("time_signature forth case: "+defaultTime+", "+defaultMeter)
                       var result = parseInt((defaultTime || defaultMeter) / 2);
                       return createTimeSignature(result);
                   })(pos0, result0);
@@ -4847,13 +4934,13 @@ module.exports=(function(){
           var WHOLE   = 256,
               HALF    = 128,
               QUARTER = 64,
-              _4TH    = 32,
+              _8th    = 32,
               _16TH   = 16,
               _32TH   = 8,
               _64TH   = 4,
               _128TH  = 2;
       
-          var durations = [_128TH, _64TH, _32TH, _16TH, _4TH, QUARTER, HALF, WHOLE];
+          var durations = [_128TH, _64TH, _32TH, _16TH, _8th, QUARTER, HALF, WHOLE];
           var isDotted = function(duration) {
               return durations.indexOf(duration) === -1;
           };
